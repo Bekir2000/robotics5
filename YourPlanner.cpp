@@ -4,179 +4,109 @@
 YourPlanner::YourPlanner() :
   RrtConConBase()
 {
+  // Initialize weights for PUMA 560 (6 DOF)
+  // Base, Shoulder, Elbow are high priority; Wrist is low priority.
+  this->weights.resize(6);
+  this->weights << 1.0, 0.8, 0.6, 0.2, 0.1, 0.1; 
 }
 
-YourPlanner::~YourPlanner()
-{
-}
+YourPlanner::~YourPlanner() {}
 
-::std::string
-YourPlanner::getName() const
-{
-  return "Weighted Distance Planner";
+::std::string YourPlanner::getName() const {
+  return "PUMA 560 Weighted RRT";
 }
 
 ::rl::math::Real 
 YourPlanner::weightedDistance(const ::rl::math::Vector& q1, const ::rl::math::Vector& q2) const {
-  ::rl::math::Vector weights(this->model->getDof());
-  // PUMA 560 weights: prioritizing base, shoulder, and elbow
-  weights << 1.0, 0.8, 0.6, 0.2, 0.1, 0.1; 
-  
-  ::rl::math::Vector diff = q1 - q2;
   ::rl::math::Real sumSq = 0;
-  for(int i = 0; i < diff.size(); ++i) {
-    sumSq += weights(i) * diff(i) * diff(i);
+  for(int i = 0; i < q1.size(); ++i) {
+    // transformedDistance(v1, v2, joint_index) returns the SHORTEST squared distance
+    // correctly handling the wraparound (circular) joints.
+    sumSq += this->weights(i) * this->model->transformedDistance(q1(i), q2(i), i);
   }
   return std::sqrt(sumSq);
 }
 
-bool
-YourPlanner::areEqual(const ::rl::math::Vector& lhs, const ::rl::math::Vector& rhs) const
-{
-  // Using weighted distance for configuration comparison 
-  if (this->weightedDistance(lhs, rhs) > this->epsilon)
-  {
-    return false;
-  }
-  else
-  {
-    return true;
-  }
-}
-
 RrtConConBase::Neighbor
 YourPlanner::nearest(const Tree& tree, const ::rl::math::Vector& chosen) {
-  // Initialize with max possible value 
   Neighbor p(Vertex(), (::std::numeric_limits<::rl::math::Real>::max)());
 
-  ::rl::math::Vector weights(this->model->getDof());
-  weights << 1.0, 0.8, 0.6, 0.2, 0.1, 0.1; 
-
   for (VertexIteratorPair i = ::boost::vertices(tree); i.first != i.second; ++i.first) {
-    ::rl::math::Vector diff = chosen - *tree[*i.first].q;
-    
-    // Compute weighted squared distance (no sqrt in the loop for speed) 
     ::rl::math::Real dSq = 0;
-    for(int j = 0; j < diff.size(); ++j) {
-      dSq += weights(j) * diff(j) * diff(j);
+    const ::rl::math::Vector& q_tree = *tree[*i.first].q;
+    
+    // Manual loop is faster here as it avoids vector subtraction allocations
+    for(int j = 0; j < chosen.size(); ++j) {
+      dSq += this->weights(j) * this->model->transformedDistance(chosen(j), q_tree(j), j);
     }
 
     if (dSq < p.second) {
       p.first = *i.first;
-      p.second = dSq; // Store the squared distance
+      p.second = dSq; 
     }
   }
 
-  // Compute square root only once for the winner 
+  // Convert squared distance to real distance for 'delta' comparisons
   p.second = std::sqrt(p.second);
   return p;
 }
 
-void
-YourPlanner::choose(::rl::math::Vector& chosen)
-{
-  //your modifications here
-  RrtConConBase::choose(chosen);
+bool
+YourPlanner::areEqual(const ::rl::math::Vector& lhs, const ::rl::math::Vector& rhs) const {
+  return this->weightedDistance(lhs, rhs) <= this->epsilon;
 }
 
 RrtConConBase::Vertex 
-YourPlanner::connect(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen)
-{
-  //your modifications here
-  //Do first extend step
-
-  ::rl::math::Real distance = nearest.second;
-  ::rl::math::Real step = distance;
-
+YourPlanner::connect(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen) {
+  ::rl::math::Real dist = nearest.second;
   bool reached = false;
+  ::rl::math::Real step = (dist <= this->delta) ? (reached = true, dist) : this->delta;
 
-  if (step <= this->delta)
-  {
-    reached = true;
-  }
-  else
-  {
-    step = this->delta;
-  }
-
-  ::rl::plan::VectorPtr last = ::std::make_shared< ::rl::math::Vector >(this->model->getDof());
-
-  // move "last" along the line q<->chosen by distance "step / distance"
-  this->model->interpolate(*tree[nearest.first].q, chosen, step / distance, *last);
+  ::rl::plan::VectorPtr last = ::std::make_shared<::rl::math::Vector>(this->model->getDof());
+  this->model->interpolate(*tree[nearest.first].q, chosen, step / dist, *last);
 
   this->model->setPosition(*last);
   this->model->updateFrames();
 
-  if (this->model->isColliding())
-  {
-    return NULL;
-  }
+  if (this->model->isColliding()) return NULL;
 
   ::rl::math::Vector next(this->model->getDof());
+  while (!reached) {
+    dist = this->weightedDistance(*last, chosen);
+    step = (dist <= this->delta) ? (reached = true, dist) : this->delta;
 
-  while (!reached)
-  {
-    //Do further extend step
-    distance = this->weightedDistance(*last, chosen);
-    step = distance;
-
-    if (step <= this->delta)
-    {
-      reached = true;
-    }
-    else
-    {
-      step = this->delta;
-    }
-
-    // move "next" along the line last<->chosen by distance "step / distance"
-    this->model->interpolate(*last, chosen, step / distance, next);
-
+    this->model->interpolate(*last, chosen, step / dist, next);
     this->model->setPosition(next);
     this->model->updateFrames();
 
-    if (this->model->isColliding())
-    {
-      break;
-    }
-
+    if (this->model->isColliding()) break;
     *last = next;
   }
 
-  // "last" now points to the vertex where the connect step collided with the environment.
-  // Add it to the tree
-  Vertex connected = this->addVertex(tree, last);
-  this->addEdge(nearest.first, connected, tree);
-  return connected;
+  Vertex v = this->addVertex(tree, last);
+  this->addEdge(nearest.first, v, tree);
+  return v;
 }
 
 RrtConConBase::Vertex 
-YourPlanner::extend(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen)
-{
-  //your modifications here
-  ::rl::math::Real distance = nearest.second;
-  ::rl::math::Real step = (::std::min)(distance, this->delta);
+YourPlanner::extend(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen) {
+  ::rl::math::Real dist = nearest.second;
+  ::rl::math::Real step = (::std::min)(dist, this->delta);
 
-  ::rl::plan::VectorPtr next = ::std::make_shared< ::rl::math::Vector >(this->model->getDof());
-
-  this->model->interpolate(*tree[nearest.first].q, chosen, step / distance, *next);
+  ::rl::plan::VectorPtr next = ::std::make_shared<::rl::math::Vector>(this->model->getDof());
+  this->model->interpolate(*tree[nearest.first].q, chosen, step / dist, *next);
 
   this->model->setPosition(*next);
   this->model->updateFrames();
 
-  if (!this->model->isColliding())
-  {
-    Vertex extended = this->addVertex(tree, next);
-    this->addEdge(nearest.first, extended, tree);
-    return extended;
+  if (!this->model->isColliding()) {
+    Vertex v = this->addVertex(tree, next);
+    this->addEdge(nearest.first, v, tree);
+    return v;
   }
-
   return NULL;
 }
 
-bool
-YourPlanner::solve()
-{
-  //your modifications here
+bool YourPlanner::solve() {
   return RrtConConBase::solve();
 }
