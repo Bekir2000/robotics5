@@ -31,6 +31,10 @@ protected:
 
   RrtConConBase::Vertex extend(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen);
 
+  bool areEqual(const ::rl::math::Vector& lhs, const ::rl::math::Vector& rhs) const override;
+
+  RrtConConBase::Neighbor nearest(const Tree& tree, const ::rl::math::Vector& chosen) override;
+
 private:
 
 };
