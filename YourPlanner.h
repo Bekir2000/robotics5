@@ -6,6 +6,7 @@
 #endif
 
 #include "RrtConConBase.h"
+#include <rl/plan/KdtreeBoundingBoxNearestNeighbors.h>
 
 using namespace ::rl::plan;
 
@@ -25,7 +26,7 @@ public:
   bool solve();
 
   bool useWorkspaceDistance = false;
-  bool useKdTree = false;
+  bool useKdTree = true;
 
 protected:
   void choose(::rl::math::Vector& chosen);
@@ -35,6 +36,16 @@ protected:
   RrtConConBase::Vertex extend(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen);
 
   RrtConConBase::Neighbor nearest(const Tree& tree, const ::rl::math::Vector& chosen) override;
+
+
+  // We use RobLib's KdtreeBoundingBoxNearestNeighbors datastructure to find the nearest neighbor
+  std::vector<rl::plan::KdtreeBoundingBoxNearestNeighbors*> kdtrees;
+
+  // Define lookup table for each tree
+  // Since RobLib's kd-tree implementation only works with rl::plan::Metric::Value,
+  // we use this to map Metric::Value objects to boost vertices, which are used by the RRT planner
+  std::vector<Vertex> vertexMap[2];
+
 
 
 private:

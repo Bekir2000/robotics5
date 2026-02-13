@@ -1,5 +1,6 @@
 #include "YourPlanner.h"
 #include <rl/plan/SimpleModel.h>
+#include <rl/plan/KdtreeBoundingBoxNearestNeighbors.h>
 
 YourPlanner::YourPlanner() :
   RrtConConBase()
