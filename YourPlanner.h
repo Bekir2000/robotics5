@@ -24,6 +24,9 @@ public:
 
   bool solve();
 
+  bool useWorkspaceDistance = false;
+  bool useKdTree = false;
+
 protected:
   void choose(::rl::math::Vector& chosen);
 
@@ -31,13 +34,13 @@ protected:
 
   RrtConConBase::Vertex extend(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen);
 
-  bool areEqual(const ::rl::math::Vector& lhs, const ::rl::math::Vector& rhs) const;
-
   RrtConConBase::Neighbor nearest(const Tree& tree, const ::rl::math::Vector& chosen) override;
 
-private:
-  ::rl::math::Real weightedDistance(const ::rl::math::Vector& q1, const ::rl::math::Vector& q2) const;
 
+private:
+  RrtConConBase::Neighbor nearestWithWorkspaceDistance(const Tree& tree, const ::rl::math::Vector& chosen);
+  RrtConConBase::Neighbor nearestWithKdTree(const Tree& tree, const ::rl::math::Vector& chosen);
+  Vertex addVertex(Tree& tree, const ::rl::plan::VectorPtr& q);
 };
 
 #endif // _YOUR_PLANNER_H_
