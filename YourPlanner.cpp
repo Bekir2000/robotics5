@@ -1,158 +1,226 @@
 #include "YourPlanner.h"
+#include "YourSampler.h"
+
 #include <rl/plan/SimpleModel.h>
 #include <rl/plan/KdtreeBoundingBoxNearestNeighbors.h>
+
 
 YourPlanner::YourPlanner() :
   RrtConConBase()
 {
+<<<<<<< HEAD
   // Initialize weights for PUMA 560 (6 DOF)
   // Base, Shoulder, Elbow are high priority; Wrist is low priority.
   this->weights.resize(6);
   this->weights << 1.0, 0.8, 0.6, 0.2, 0.1, 0.1; 
+=======
+  this->sampler = new YourSampler();
+
+  // Prevent destructor crashes if solve() never ran
+  kdtrees.assign(2, nullptr);
+>>>>>>> ce7fd19 (added kdtree, sampling from normal distribution, pruning from exausted nodes and workspacedistance messaurement)
 }
 
 YourPlanner::~YourPlanner()
 {
-  delete kdtrees[0];
-  delete kdtrees[1];
-  kdtrees[0] = nullptr;
-  kdtrees[1] = nullptr;
-
+  for (std::size_t i = 0; i < kdtrees.size(); ++i)
+  {
+    if (kdtrees[i] != nullptr)
+    {
+      delete kdtrees[i];
+      kdtrees[i] = nullptr;
+    }
+  }
 }
 
-::std::string
-YourPlanner::getName() const
+
+::std::string YourPlanner::getName() const
 {
-  if (this->useKdTree && this->useWorkspaceDistance) {
-    return "Your Planner (Kd-Tree + Workspace Distance)";
-  }
-  if (this->useWorkspaceDistance) {
-    return "Your Planner with Workspace Distance";
-  }
-  if (this->useKdTree) {
-    return "Your Planner with Kd-Tree";
-  }
-  return "Your Planner";
+    std::vector<std::string> features;
+    
+    if (this->useKdTree) features.push_back("KdTree");
+    if (this->useWorkspaceDistance) features.push_back("WorkspaceDistance");
+    if (this->useExaustedNodePruning) features.push_back("exaustedNodePruning");
+
+
+    YourSampler* mySampler = static_cast<YourSampler*>(this->sampler);
+    if (mySampler && mySampler->useNormalDistribution) {
+        features.push_back("Normaldistribution");
+    }
+    
+    if (features.empty()) {
+        return "Your Planner";
+    }
+
+    std::string result = "Your Planner (";
+    for (size_t i = 0; i < features.size(); ++i) {
+        result += features[i];
+        if (i < features.size() - 1) result += " + ";
+    }
+    result += ")";
+    
+    return result;
 }
-
-
 
 void
 YourPlanner::choose(::rl::math::Vector& chosen)
 {
-  //your modifications here
   RrtConConBase::choose(chosen);
 }
 
 YourPlanner::Vertex
 YourPlanner::addVertex(Tree& tree, const ::rl::plan::VectorPtr& q)
 {
-  // Add vertex to the tree
   Vertex v = RrtConConBase::addVertex(tree, q);
 
   std::size_t idx = (&tree == &this->tree[0]) ? 0 : 1;
-  
-  // Add vertex to the vertexMap
+
+  // ALWAYS maintain mapping consistency
   vertexMap[idx].push_back(v);
 
-  // Create a Metric::Value as RobLib's kd-tree is designed to work only with this object type (does not work with boost vertices)
-  // Metric::Value consists of the configuration q and an index
-  std::size_t vertex_idx = vertexMap[idx].size() - 1;
-  rl::plan::Metric::Value value(q.get(), reinterpret_cast<void*>(vertex_idx));
+  if (this->useKdTree && kdtrees[idx] != nullptr)
+  {
+    std::size_t vertex_idx = vertexMap[idx].size() - 1;
 
-  // Add vertex to the kd-tree
-  kdtrees[idx]->push(value);
+    rl::plan::Metric::Value value(q.get(), reinterpret_cast<void*>(vertex_idx));
+
+    kdtrees[idx]->push(value);
+  }
 
   return v;
 }
 
+RrtConConBase::Neighbor
+YourPlanner::nearestWithKdTree(const Tree& tree, const ::rl::math::Vector& chosen)
+{
+  std::size_t idx = (&tree == &this->tree[0]) ? 0 : 1;
 
-RrtConConBase::Neighbor 
+  if (kdtrees[idx] == nullptr || vertexMap[idx].empty())
+    return RrtConConBase::nearest(tree, chosen);
+
+  rl::plan::Metric::Value query(&chosen, nullptr);
+  
+  size_t k = this->useExaustedNodePruning ? this->exaustedThreshold : 1;
+  auto neighbors = kdtrees[idx]->nearest(query, k);
+
+  for (const auto& candidate : neighbors)
+  {
+    
+    std::size_t v_idx = reinterpret_cast<std::size_t>(candidate.second.second);
+    
+    if (v_idx >= vertexMap[idx].size()) continue; // Safety check
+
+    Vertex v = this->vertexMap[idx][v_idx];
+    
+    if (this->useExaustedNodePruning)
+    {
+      if (tree[v].failCount < this->exaustedThreshold)
+      {
+        return Neighbor(v, candidate.first); 
+      }
+    }
+    else
+    {
+      return Neighbor(v, candidate.first);
+    }
+  }
+
+  // If all candidates were pruned or search failed, use standard nearest
+  return RrtConConBase::nearest(tree, chosen);
+}
+
+RrtConConBase::Neighbor
 YourPlanner::nearestWithWorkspaceDistance(const Tree& tree, const ::rl::math::Vector& chosen)
 {
-  //create an empty pair <Vertex, distance> to return
-  Neighbor p(Vertex(), (::std::numeric_limits< ::rl::math::Real >::max)());
+    const ::rl::math::Real alpha = 1.0; 
+    const ::rl::math::Real beta  = 1.0;   
 
-  // Calculate workspace frames for the 'chosen' configuration once
-  this->model->setPosition(chosen);
-  this->model->updateFrames(false);
-  // Get the end-effector position for the sampled point
-  ::rl::math::Vector3 chosenTcp = this->model->forwardPosition().translation();
+    Neighbor best(Vertex(), std::numeric_limits< ::rl::math::Real >::max());
 
-  //Iterate through all vertices to find the nearest neighbour
+    // Precompute chosen TCP once
+    this->model->setPosition(chosen);
+    this->model->updateFrames(false);
+    const ::rl::math::Vector3 chosenTcp =
+        this->model->forwardPosition().translation();
+
+    ::rl::math::Real bestScore =
+        std::numeric_limits< ::rl::math::Real >::max();
+
+    for (VertexIteratorPair i = ::boost::vertices(tree); i.first != i.second; ++i.first)
+    {
+        const Vertex v = *i.first;
+        const ::rl::math::Vector& q = *tree[v].q;
+
+        // Joint-space distance (torus-safe inside model)
+        const ::rl::math::Real jointD =
+            this->model->distance(chosen, q);
+
+        // Workspace distance
+        this->model->setPosition(q);
+        this->model->updateFrames(false);
+        const ::rl::math::Vector3 tcp =
+            this->model->forwardPosition().translation();
+
+        const ::rl::math::Real workspaceD =
+            (chosenTcp - tcp).norm();
+
+        const ::rl::math::Real score =
+            alpha * jointD + beta * workspaceD;
+
+        if (score < bestScore)
+        {
+            bestScore = score;
+            best.first = v;
+            best.second = jointD; 
+        }
+    }
+
+    return best;
+}
+
+RrtConConBase::Neighbor
+YourPlanner::nearestWithSkippingExhaustedNodes(const Tree& tree, const ::rl::math::Vector& chosen)
+{
+  Neighbor p(Vertex(), (::std::numeric_limits<::rl::math::Real>::max)());
+
   for (VertexIteratorPair i = ::boost::vertices(tree); i.first != i.second; ++i.first)
   {
-    // Calculate workspace position for the candidate node in the tree
-    this->model->setPosition(*tree[*i.first].q);
-    this->model->updateFrames();
-    ::rl::math::Vector3 candidateTcp = this->model->forwardPosition().translation();
+    
+    
+    if (tree[*i.first].failCount >= this->exaustedThreshold) {
+        continue; // Skip this node, it's stuck against a wall
+    }
 
-    // Displacement Metric: distance in the physical workspace (m) 
-    // instead of joint space (rad)
-    ::rl::math::Real d = (chosenTcp - candidateTcp).norm();
+    ::rl::math::Real d = this->model->transformedDistance(chosen, *tree[*i.first].q);
 
-    if (d < p.second)
-    {
+    if (d < p.second) {
       p.first = *i.first;
       p.second = d;
     }
   }
 
-
-  // Compute the square root of distance
-  //p.second = this->model->inverseOfTransformedDistance(p.second);
-
+  p.second = this->model->inverseOfTransformedDistance(p.second);
   return p;
 }
 
-RrtConConBase::Neighbor 
-YourPlanner::nearestWithKdTree(const Tree& tree, const ::rl::math::Vector& chosen)
-{ 
-  // Use RobLib's KdtreeBoundingBoxNearestNeighbors datastructure for finding the nearest neighbor
-  
-  std::size_t idx = (&tree == &this->tree[0]) ? 0 : 1;
-  
-  // Create a query
-  rl::plan::Metric::Value query(&chosen, nullptr);
 
-  // Query the kd-tree to find the nearest neighbor (one could also query the kd-tree to find n-many neighbors)
-  auto neighbors = this->kdtrees[idx]->nearest(query, 1, true);
-  
-  Neighbor result(Vertex(), 0);
-
-  if (!neighbors.empty())
-  {
-  	// From the nearest neighbor (neighbors.front()), extract the Metric::Value object
-	const rl::plan::Metric::Value& value = neighbors.front().second;
-
-	// Get index for the vertexMap
-  std::size_t vertex_idx = reinterpret_cast<std::size_t>(value.second);
-	
-	// Use the vertexMap to get the boost vertex for the corresponding Metric::Value object
-	result.first = vertexMap[idx][vertex_idx];
-	
-	// Get the distance to the nearest neighbor
-	result.second = neighbors.front().first;
-	
-  }
-
-  // Return boost vertex and distance of the nearest neighbor
-  return result;
-
-}
-
-RrtConConBase::Neighbor 
+RrtConConBase::Neighbor
 YourPlanner::nearest(const Tree& tree, const ::rl::math::Vector& chosen)
 {
   if (this->useKdTree)
-    return this->nearestWithKdTree(tree, chosen);
-  else if(this->useWorkspaceDistance)
-    return this->nearestWithWorkspaceDistance(tree, chosen);
-  else
-    return RrtConConBase::nearest(tree, chosen);  
-  
+    return nearestWithKdTree(tree, chosen);
+
+  if (this->useWorkspaceDistance)
+    return nearestWithWorkspaceDistance(tree, chosen);
+
+  if (this->useExaustedNodePruning){
+    return nearestWithSkippingExhaustedNodes(tree, chosen);
+  }
+
+  return RrtConConBase::nearest(tree, chosen);
 }
 
+<<<<<<< HEAD
 
 RrtConConBase::Vertex 
 YourPlanner::connect(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen) {
@@ -184,29 +252,51 @@ YourPlanner::connect(Tree& tree, const Neighbor& nearest, const ::rl::math::Vect
   Vertex v = this->addVertex(tree, last);
   this->addEdge(nearest.first, v, tree);
   return v;
+=======
+RrtConConBase::Vertex
+YourPlanner::connect(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen)
+{
+  Vertex result = RrtConConBase::connect(tree, nearest, chosen);
+
+  // If result is NULL, it means we hit a wall immediately
+  if (NULL == result)
+  {
+    tree[nearest.first].failCount += 1.0; 
+  }
+  
+  return result;
+>>>>>>> ce7fd19 (added kdtree, sampling from normal distribution, pruning from exausted nodes and workspacedistance messaurement)
 }
 
-RrtConConBase::Vertex 
+RrtConConBase::Vertex
 YourPlanner::extend(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen)
 {
-  //your modifications here
+  Vertex result = RrtConConBase::extend(tree, nearest, chosen);
+
+  if (NULL == result)
+  {
+    tree[nearest.first].failCount += 1.0;
+  }
+
   return RrtConConBase::extend(tree, nearest, chosen);
 }
 
 bool
 YourPlanner::solve()
 {
-  //your modifications here
-
-  if(this->useKdTree){
-    // Clear old kd-trees and vertex maps from previous execution
+  if (this->useKdTree)
+  {
     for (std::size_t i = 0; i < 2; ++i)
     {
-      delete kdtrees[i];
+      if (kdtrees[i] != nullptr)
+      {
+        delete kdtrees[i];
+        kdtrees[i] = nullptr;
+      }
+
       kdtrees[i] = new rl::plan::KdtreeBoundingBoxNearestNeighbors(this->model);
       vertexMap[i].clear();
     }
-
   }
 
   return RrtConConBase::solve();

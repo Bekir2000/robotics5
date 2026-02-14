@@ -23,12 +23,16 @@ namespace rl
 
             virtual void seed(const ::std::mt19937::result_type& value);
 
+			bool useNormalDistribution = true;
+
         protected:
             ::std::uniform_real_distribution< ::rl::math::Real>::result_type rand();
 
             ::std::uniform_real_distribution< ::rl::math::Real> randDistribution;
+			::std::normal_distribution<::rl::math::Real> normalDistribution;
 
             ::std::mt19937 randEngine;
+			::std::mt19937 normalEngine;
 
         private:
 

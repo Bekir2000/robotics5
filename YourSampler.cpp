@@ -9,7 +9,9 @@ namespace rl
         YourSampler::YourSampler() :
             Sampler(),
             randDistribution(0, 1),
-            randEngine(::std::random_device()())
+            normalDistribution(0,1),
+            randEngine(::std::random_device()()),
+            normalEngine(::std::random_device()())
         {
         }
 
@@ -17,9 +19,11 @@ namespace rl
         {
         }
 
+
         ::rl::math::Vector
         YourSampler::generate()
         {
+
             // Our template code performs uniform sampling.
             // You are welcome to change any or all parts of the sampler.
             // BUT PLEASE MAKE SURE YOU CONFORM TO JOINT LIMITS,
@@ -48,6 +52,9 @@ namespace rl
         ::std::uniform_real_distribution< ::rl::math::Real>::result_type
         YourSampler::rand()
         {
+            if(this->useNormalDistribution){
+                return this->normalDistribution(this->normalEngine);
+            }
             return this->randDistribution(this->randEngine);
         }
 
@@ -55,7 +62,7 @@ namespace rl
         YourSampler::seed(const ::std::mt19937::result_type& value)
         {
             this->randEngine.seed(value);
+            this->normalEngine.seed(value);
         }
     }
 }
-
