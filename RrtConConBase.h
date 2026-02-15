@@ -93,8 +93,9 @@ protected:
     ::std::size_t index;
 
     ::rl::plan::VectorPtr q;
-
-    ::rl::math::Real tmp;
+    ::rl::math::Real counter;
+    ::rl::math::Real failCount;
+    ::rl::math::Real radius;
   };
 
   typedef ::boost::adjacency_list_traits<

@@ -1,0 +1,62 @@
+2026-02-15,22:26:16.610,true,Your Planner,6912,372716,358790,18247.1
+2026-02-15,22:26:57.485,true,Your Planner,8252,438256,421646,22475.1
+2026-02-15,22:27:55.386,true,Your Planner,14157,697175,668476,46604.6
+2026-02-15,22:28:28.355,true,Your Planner,7809,416709,400915,21011.8
+2026-02-15,22:29:17.835,true,Your Planner,12822,641042,614985,41256.4
+2026-02-15,22:30:08.218,true,Your Planner,12293,623085,597885,41391.7
+2026-02-15,22:30:56.283,true,Your Planner,12515,619832,594253,39278.4
+2026-02-15,22:31:43.806,true,Your Planner,11965,596735,572910,38167.5
+2026-02-15,22:32:17.513,true,Your Planner,4032,225824,217979,10349.4
+2026-02-15,22:33:07.620,true,Your Planner,11973,601432,577306,35555.5
+2026-02-15,21:01:13.213,true,Your Planner (KdTree),15932,770085,737702,60770.6
+2026-02-15,21:01:51.824,true,Your Planner (KdTree),9782,506846,487124,28699
+2026-02-15,21:02:37.631,true,Your Planner (KdTree),10994,565064,542727,32567.8
+2026-02-15,21:03:38.149,true,Your Planner (KdTree),3697,216743,209644,9746.19
+2026-02-15,21:04:30.096,true,Your Planner (KdTree),10082,521292,500651,29221.6
+2026-02-15,21:04:45.773,true,Your Planner (KdTree),2064,130438,126386,5488.6
+2026-02-15,21:06:52.137,true,Your Planner (KdTree),24571,1123115,1072487,115284
+2026-02-15,21:08:26.132,true,Your Planner (KdTree),14232,699245,670391,47442.9
+2026-02-15,21:08:44.738,true,Your Planner (KdTree),3932,229238,221370,10473.4
+2026-02-15,21:09:21.385,true,Your Planner (KdTree),7374,399529,384502,21068.3
+2026-02-15,21:11:20.607,true,Your Planner (exaustedNodePruning),10676,533413,512381,33588
+2026-02-15,21:11:52.329,true,Your Planner (exaustedNodePruning),8525,444015,427096,24318.5
+2026-02-15,21:12:11.776,true,Your Planner (exaustedNodePruning),4338,245179,236616,11272.8
+2026-02-15,21:12:39.079,true,Your Planner (exaustedNodePruning),7205,380549,366427,20009.9
+2026-02-15,21:13:08.711,true,Your Planner (exaustedNodePruning),7603,403520,388356,21133.4
+2026-02-15,21:14:19.120,true,Your Planner (exaustedNodePruning),15860,760007,728022,56398.4
+2026-02-15,21:14:51.747,true,Your Planner (exaustedNodePruning),8395,435219,418620,24073.4
+2026-02-15,21:15:15.844,true,Your Planner (exaustedNodePruning),6022,330500,318446,16125.5
+2026-02-15,21:16:29.461,true,Your Planner (exaustedNodePruning),17301,819645,784704,64952.3
+2026-02-15,21:17:23.991,true,Your Planner (exaustedNodePruning),14087,681928,653648,47866.2
+2026-02-15,21:19:42.886,true,Your Planner (GoalBias),9534,494217,474837,28101.2
+2026-02-15,21:20:37.302,true,Your Planner (GoalBias),12056,599079,574790,37448.1
+2026-02-15,21:20:57.797,true,Your Planner (GoalBias),5000,282133,272167,13188.2
+2026-02-15,21:21:22.960,true,Your Planner (GoalBias),6274,342732,330374,17012.6
+2026-02-15,21:22:34.805,true,Your Planner (GoalBias),17375,827851,791887,65580.4
+2026-02-15,21:23:03.162,true,Your Planner (GoalBias),7302,386657,372276,19670.4
+2026-02-15,21:23:23.434,true,Your Planner (GoalBias),4414,259666,250687,12308.8
+2026-02-15,21:24:30.944,true,Your Planner (GoalBias),16074,772151,739187,56480.6
+2026-02-15,21:25:02.051,true,Your Planner (GoalBias),6889,371153,357392,19061.1
+2026-02-15,21:25:46.963,true,Your Planner (GoalBias),10953,557690,535510,32085.8
+2026-02-15,21:42:54.884,true,Your Planner (Normaldistribution),1407,67884,62599,3810.63
+2026-02-15,21:43:20.827,true,Your Planner (Normaldistribution),1276,54192,48866,3096.68
+2026-02-15,21:43:38.841,true,Your Planner (Normaldistribution),4220,161139,141446,10831.3
+2026-02-15,21:44:51.879,true,Your Planner (Normaldistribution),2796,110775,98276,7066.31
+2026-02-15,21:45:21.973,true,Your Planner (Normaldistribution),1337,59780,54919,3374.19
+2026-02-15,21:45:51.147,true,Your Planner (Normaldistribution),2498,115777,104216,7007.47
+2026-02-15,21:46:25.816,true,Your Planner (Normaldistribution),3380,146244,127125,9706.07
+2026-02-15,21:46:40.514,true,Your Planner (Normaldistribution),2436,89666,79524,5600.34
+2026-02-15,21:47:01.218,true,Your Planner (Normaldistribution),1690,68753,61950,4030.02
+2026-02-15,21:47:20.396,true,Your Planner (Normaldistribution),1396,67964,61579,3876.9
+2026-02-15,22:35:26.805,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),2107,81738,72510,4995.5
+2026-02-15,22:36:00.031,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),3277,126051,110576,8362.45
+2026-02-15,22:36:22.775,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),4376,168622,146058,12001.4
+2026-02-15,22:36:35.453,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),1264,57805,53123,3245.68
+2026-02-15,22:36:48.432,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),784,43049,39725,2342.31
+2026-02-15,22:37:27.225,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),6470,238939,202942,19015.5
+2026-02-15,22:37:43.147,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),2110,93430,84419,5492.53
+2026-02-15,22:37:53.455,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),191,11552,10910,622.313
+2026-02-15,22:38:13.337,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),3049,120075,106143,7930.86
+2026-02-15,22:38:30.407,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),1635,69115,62120,3978.51
+2026-02-15,22:39:06.105,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),1918,76796,69124,4716.81
+2026-02-15,22:39:25.321,true,Your Planner (KdTree + exaustedNodePruning + GoalBias + Normaldistribution),3242,142551,124332,9551.58

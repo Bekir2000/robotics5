@@ -25,12 +25,15 @@ public:
 
   bool solve();
 
-  bool useWorkspaceDistance = false;
-  bool useKdTree = false;
-  bool useExaustedNodePruning = false;
-  bool useWeightedMetric = true;
+  // use this to enable/disable the extensions
+  bool useWorkspaceDistance = false; // not part of homework
+  bool useWeightedMetric = false; // not part of hoemwork
 
+  bool useKdTree = true; 
+  bool useExaustedNodePruning = true;
+  bool useGoalBias = true;
 
+  
   rl::math::Real exaustedThreshold = 30;
 
 protected:
@@ -59,7 +62,9 @@ private:
   RrtConConBase::Neighbor nearestWithWorkspaceDistance(const Tree& tree, const ::rl::math::Vector& chosen);
   RrtConConBase::Neighbor nearestWithKdTree(const Tree& tree, const ::rl::math::Vector& chosen);
   RrtConConBase::Neighbor nearestWithSkippingExhaustedNodes(const Tree& tree, const ::rl::math::Vector& chosen);
+  RrtConConBase::Neighbor nearestWithWeightingDistanceMetric(const Tree& tree, const ::rl::math::Vector& chosen);
   Vertex addVertex(Tree& tree, const ::rl::plan::VectorPtr& q);
 };
 
 #endif // _YOUR_PLANNER_H_
+

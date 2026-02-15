@@ -9,7 +9,7 @@ namespace rl
         YourSampler::YourSampler() :
             Sampler(),
             randDistribution(0, 1),
-            normalDistribution(0,1),
+            normalDistribution(0,5),
             randEngine(::std::random_device()()),
             normalEngine(::std::random_device()())
         {
@@ -46,6 +46,7 @@ namespace rl
             // joint limits, you may use the clip() function like this: 
             // this->model->clip(sampleq);
 
+            
             return sampleq;
         }
 

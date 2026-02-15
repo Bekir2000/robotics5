@@ -13,13 +13,7 @@ YourPlanner::YourPlanner() :
   // Prevent destructor crashes if solve() never ran
   kdtrees.assign(2, nullptr);
 
-  if (useWeightedMetric)
-  {
-    std::size_t dof = this->model->getDof();
-    weights.resize(dof);
-    for (std::size_t i = 0; i < dof; ++i)
-      weights[i] = static_cast<::rl::math::Real>(dof - i) / dof;
-  }
+  
 }
 
 YourPlanner::~YourPlanner()
@@ -42,6 +36,8 @@ YourPlanner::~YourPlanner()
     if (this->useKdTree) features.push_back("KdTree");
     if (this->useWorkspaceDistance) features.push_back("WorkspaceDistance");
     if (this->useExaustedNodePruning) features.push_back("exaustedNodePruning");
+    if (this->useWeightedMetric) features.push_back("weight distance metric");
+    if(this->useGoalBias) features.push_back("GoalBias");
 
 
     YourSampler* mySampler = static_cast<YourSampler*>(this->sampler);
@@ -66,8 +62,20 @@ YourPlanner::~YourPlanner()
 void
 YourPlanner::choose(::rl::math::Vector& chosen)
 {
+  if (this->useGoalBias)
+  {
+    const double r = std::rand();
+
+    if (r < 0.05)
+    {
+      chosen = *this->goal;
+      return;
+    }
+  }
+
   RrtConConBase::choose(chosen);
 }
+
 
 YourPlanner::Vertex
 YourPlanner::addVertex(Tree& tree, const ::rl::plan::VectorPtr& q)
@@ -204,6 +212,7 @@ YourPlanner::nearestWithSkippingExhaustedNodes(const Tree& tree, const ::rl::mat
   return p;
 }
 
+RrtConConBase::Neighbor
 YourPlanner::nearestWithWeightingDistanceMetric(const Tree& tree, const ::rl::math::Vector& chosen){
   //create an empty pair <Vertex, distance> to return
   Neighbor p(Vertex(), (::std::numeric_limits< ::rl::math::Real >::max)());
@@ -215,7 +224,7 @@ YourPlanner::nearestWithWeightingDistanceMetric(const Tree& tree, const ::rl::ma
   {
     ::rl::math::Real d = this->model->transformedDistance(chosen, *tree[*i.first].q);
 
-    for(int j = 0; j < chosen.size(); ++j){
+    for (std::size_t j = 0; j < chosen.size(); ++j){
       rank += weights[j] * d;
     }
 
@@ -277,12 +286,24 @@ YourPlanner::extend(Tree& tree, const Neighbor& nearest, const ::rl::math::Vecto
     tree[nearest.first].failCount += 1.0;
   }
 
-  return RrtConConBase::extend(tree, nearest, chosen);
+  return result;
 }
 
 bool
 YourPlanner::solve()
 {
+  
+  //std::swap(this->start, this->goal);
+  if (this->useWeightedMetric)
+  {
+    std::size_t dof = this->model->getDof();
+    weights.resize(dof);
+    for (std::size_t i = 0; i < dof; ++i)
+      weights[i] = static_cast<::rl::math::Real>(dof - i) / dof;
+
+    this->weights << 1.0, 0.8, 0.6, 0.2, 0.1, 0.1;
+  }
+  
   if (this->useKdTree)
   {
     for (std::size_t i = 0; i < 2; ++i)
@@ -300,3 +321,4 @@ YourPlanner::solve()
 
   return RrtConConBase::solve();
 }
+
