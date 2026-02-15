@@ -26,8 +26,9 @@ public:
   bool solve();
 
   bool useWorkspaceDistance = false;
-  bool useKdTree = true;
-  bool useExaustedNodePruning = true;
+  bool useKdTree = false;
+  bool useExaustedNodePruning = false;
+  bool useWeightedMetric = true;
 
 
   rl::math::Real exaustedThreshold = 30;
@@ -50,6 +51,8 @@ protected:
   // we use this to map Metric::Value objects to boost vertices, which are used by the RRT planner
   std::vector<Vertex> vertexMap[2];
 
+  // Weighted metric state (Extension 2)
+  ::rl::math::Vector weights;
 
 
 private:

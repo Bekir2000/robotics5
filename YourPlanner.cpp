@@ -12,6 +12,14 @@ YourPlanner::YourPlanner() :
 
   // Prevent destructor crashes if solve() never ran
   kdtrees.assign(2, nullptr);
+
+  if (useWeightedMetric)
+  {
+    std::size_t dof = this->model->getDof();
+    weights.resize(dof);
+    for (std::size_t i = 0; i < dof; ++i)
+      weights[i] = static_cast<::rl::math::Real>(dof - i) / dof;
+  }
 }
 
 YourPlanner::~YourPlanner()
@@ -196,10 +204,42 @@ YourPlanner::nearestWithSkippingExhaustedNodes(const Tree& tree, const ::rl::mat
   return p;
 }
 
+YourPlanner::nearestWithWeightingDistanceMetric(const Tree& tree, const ::rl::math::Vector& chosen){
+  //create an empty pair <Vertex, distance> to return
+  Neighbor p(Vertex(), (::std::numeric_limits< ::rl::math::Real >::max)());
+  ::rl::math::Real bestRank = (::std::numeric_limits<::rl::math::Real>::max)();
+
+  //Iterate through all vertices to find the nearest neighbour
+  ::rl::math::Real rank;
+  for (VertexIteratorPair i = ::boost::vertices(tree); i.first != i.second; ++i.first)
+  {
+    ::rl::math::Real d = this->model->transformedDistance(chosen, *tree[*i.first].q);
+
+    for(int j = 0; j < chosen.size(); ++j){
+      rank += weights[j] * d;
+    }
+
+    if (rank < bestRank)
+    {
+      bestRank = rank;
+      p.first = *i.first;
+      p.second = d;
+    }
+  }
+
+
+  // Compute the square root of distance
+  p.second = this->model->inverseOfTransformedDistance(p.second);
+
+  return p;
+}
+
 
 RrtConConBase::Neighbor
 YourPlanner::nearest(const Tree& tree, const ::rl::math::Vector& chosen)
 {
+  if (this->useWeightedMetric)
+    return nearestWithWeightingDistanceMetric(tree, chosen);
   if (this->useKdTree)
     return nearestWithKdTree(tree, chosen);
 
