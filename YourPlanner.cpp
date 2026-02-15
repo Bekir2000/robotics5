@@ -8,17 +8,10 @@
 YourPlanner::YourPlanner() :
   RrtConConBase()
 {
-<<<<<<< HEAD
-  // Initialize weights for PUMA 560 (6 DOF)
-  // Base, Shoulder, Elbow are high priority; Wrist is low priority.
-  this->weights.resize(6);
-  this->weights << 1.0, 0.8, 0.6, 0.2, 0.1, 0.1; 
-=======
   this->sampler = new YourSampler();
 
   // Prevent destructor crashes if solve() never ran
   kdtrees.assign(2, nullptr);
->>>>>>> ce7fd19 (added kdtree, sampling from normal distribution, pruning from exausted nodes and workspacedistance messaurement)
 }
 
 YourPlanner::~YourPlanner()
@@ -220,39 +213,6 @@ YourPlanner::nearest(const Tree& tree, const ::rl::math::Vector& chosen)
   return RrtConConBase::nearest(tree, chosen);
 }
 
-<<<<<<< HEAD
-
-RrtConConBase::Vertex 
-YourPlanner::connect(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen) {
-  ::rl::math::Real dist = nearest.second;
-  bool reached = false;
-  ::rl::math::Real step = (dist <= this->delta) ? (reached = true, dist) : this->delta;
-
-  ::rl::plan::VectorPtr last = ::std::make_shared<::rl::math::Vector>(this->model->getDof());
-  this->model->interpolate(*tree[nearest.first].q, chosen, step / dist, *last);
-
-  this->model->setPosition(*last);
-  this->model->updateFrames();
-
-  if (this->model->isColliding()) return NULL;
-
-  ::rl::math::Vector next(this->model->getDof());
-  while (!reached) {
-    dist = this->weightedDistance(*last, chosen);
-    step = (dist <= this->delta) ? (reached = true, dist) : this->delta;
-
-    this->model->interpolate(*last, chosen, step / dist, next);
-    this->model->setPosition(next);
-    this->model->updateFrames();
-
-    if (this->model->isColliding()) break;
-    *last = next;
-  }
-
-  Vertex v = this->addVertex(tree, last);
-  this->addEdge(nearest.first, v, tree);
-  return v;
-=======
 RrtConConBase::Vertex
 YourPlanner::connect(Tree& tree, const Neighbor& nearest, const ::rl::math::Vector& chosen)
 {
@@ -265,7 +225,6 @@ YourPlanner::connect(Tree& tree, const Neighbor& nearest, const ::rl::math::Vect
   }
   
   return result;
->>>>>>> ce7fd19 (added kdtree, sampling from normal distribution, pruning from exausted nodes and workspacedistance messaurement)
 }
 
 RrtConConBase::Vertex
